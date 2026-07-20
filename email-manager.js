@@ -45,6 +45,18 @@ function loadJSON(file, fallback) {
 function saveJSON(file, data) {
   ensureDir(path.dirname(file));
   fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
+  if (file === EMAILS_FILE || file === SETTINGS_FILE) {
+    try { fs.chmodSync(file, 0o600); } catch {}
+  }
+}
+
+// ⚠️ DATA-AT-REST WARNING — printed once per session
+let _storageWarningShown = false;
+function warnPlaintextStorage() {
+  if (_storageWarningShown) return;
+  _storageWarningShown = true;
+  console.log('[email-manager] ⚠️ Emails stored as PLAINTEXT JSON — no encryption at rest.');
+  console.log('[email-manager] ⚠️ Treat this data store as sensitive. Permissions set to 0600.');
 }
 
 function getToday() {
@@ -187,16 +199,24 @@ function markAsRead(id) {
 
 // ─── DELETE ────────────────────────────────────────────────────────────────
 
-function deleteEmail(id) {
-  let emails = loadJSON(EMAILS_FILE, []);
+function deleteEmail(id, force = false) {
+  warnPlaintextStorage();
+  const emails = loadJSON(EMAILS_FILE, []);
   const idx = emails.findIndex(e => e.id === id);
   if (idx >= 0) {
     const email = emails[idx];
+    if (!force) {
+      console.log(`[email-manager] ⚠️ Destructive action: deleting "${email.subject}"`);
+      console.log(`[email-manager] Add --force to confirm deletion.`);
+      return false;
+    }
     emails.splice(idx, 1);
     saveJSON(EMAILS_FILE, emails);
     console.log(`[email-manager] Deleted: ${email.subject}`);
+    return true;
   } else {
     console.log(`[email-manager] Not found: ${id}`);
+    return false;
   }
 }
 

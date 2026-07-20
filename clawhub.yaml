@@ -1,7 +1,7 @@
 slug: email-mgr
 name: email-mgr
 description: Email sending and management for agent-native skills
-version: 1.0.0
+version: 1.0.1
 type: skill
 author: OpenClaw
 license: MIT
